@@ -12,7 +12,7 @@ interface AppState {
   isProcessing: boolean
   
   // Actions
-  connectWallet: () => Promise<void>
+  connectWallet: (address?: string) => Promise<void>
   disconnectWallet: () => void
   createIntent: (intent: Omit<Intent, 'id' | 'timestamp' | 'status'>) => Promise<void>
   processIntent: (intentId: string) => Promise<void>
@@ -32,25 +32,35 @@ export const useAppStore = create<AppState>((set, get) => ({
   processor: new IntentProcessor(),
 
   // Actions
-  connectWallet: async () => {
-    const { processor } = get()
-    const success = await processor.connectWallet()
-    
-    if (success) {
-      try {
-        const signer = processor['signer']
-        if (signer) {
-          const address = await signer.getAddress()
-          const balance = await processor.getBalance(1) // Ethereum mainnet
-          
-          set({
-            isConnected: true,
-            walletAddress: address,
-            balance
-          })
+  connectWallet: async (address?: string) => {
+    if (address) {
+      // Direct connection with Anoma address
+      set({
+        isConnected: true,
+        walletAddress: address,
+        balance: '0.0' // Placeholder for Anoma balance
+      })
+    } else {
+      // Fallback to processor connection
+      const { processor } = get()
+      const success = await processor.connectWallet()
+      
+      if (success) {
+        try {
+          const signer = processor['signer']
+          if (signer) {
+            const signerAddress = await signer.getAddress()
+            const balance = await processor.getBalance(1) // Ethereum mainnet
+            
+            set({
+              isConnected: true,
+              walletAddress: signerAddress,
+              balance
+            })
+          }
+        } catch (error) {
+          console.error('Failed to get wallet info:', error)
         }
-      } catch (error) {
-        console.error('Failed to get wallet info:', error)
       }
     }
   },

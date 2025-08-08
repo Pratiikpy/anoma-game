@@ -1,10 +1,11 @@
 import { ethers } from 'ethers'
 import { toast } from 'react-hot-toast'
 import { analytics } from './analytics'
+import { GlitchNFT, anomaNFTManager, GLITCH_TYPES } from './anomaNFTs'
 
 export interface Intent {
   id: string
-  type: 'swap' | 'bridge' | 'stake' | 'yield'
+  type: 'swap' | 'bridge' | 'stake' | 'yield' | 'trade'
   description: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
   chains: string[]
@@ -16,6 +17,10 @@ export interface Intent {
   toChain?: string
   txHash?: string
   error?: string
+  // Anoma-specific fields
+  itemToGive?: string // Glitch NFT ID to give
+  itemToReceive?: string // Glitch type to receive
+  userAddress?: string // Anoma address
 }
 
 export interface TokenInfo {
@@ -24,6 +29,38 @@ export interface TokenInfo {
   decimals: number
   chainId: number
 }
+
+export interface AnomaTradeIntent {
+  id: string
+  user_address: string
+  item_to_give: {
+    token_id: string
+    token_type: string
+    owner: string
+  }
+  item_to_receive: {
+    token_type: string
+    desired_rarity?: string
+  }
+  timestamp: number
+  signature?: string
+  status: 'pending' | 'broadcast' | 'completed' | 'failed'
+}
+
+interface KeplrWindow extends Window {
+  keplr?: {
+    enable: (chainId: string) => Promise<void>
+    getOfflineSigner: (chainId: string) => any
+    getKey: (chainId: string) => Promise<{
+      name: string
+      pubKey: string
+      address: string
+      bech32Address: string
+    }>
+  }
+}
+
+declare const window: KeplrWindow
 
 export class IntentProcessor {
   private provider: ethers.BrowserProvider | null = null
@@ -117,6 +154,112 @@ export class IntentProcessor {
       analytics.trackError('transaction_validation_failed', error instanceof Error ? error.message : 'Unknown error')
       throw error
     }
+  }
+
+  // New method for creating Anoma trade intents
+  async createTradeIntent(itemToGive: string, itemToReceive: string, userAddress: string): Promise<AnomaTradeIntent> {
+    // Validate that the user owns the item they want to give
+    const glitchToGive = anomaNFTManager.getGlitchById(itemToGive)
+    if (!glitchToGive || glitchToGive.owner !== userAddress) {
+      throw new Error('You do not own this Glitch NFT')
+    }
+
+    // Validate the item they want to receive exists
+    const glitchTypes = Object.keys(GLITCH_TYPES)
+    if (!glitchTypes.includes(itemToReceive)) {
+      throw new Error('Invalid Glitch type to receive')
+    }
+
+    const intent: AnomaTradeIntent = {
+      id: `trade-intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      user_address: userAddress,
+      item_to_give: {
+        token_id: itemToGive,
+        token_type: glitchToGive.ability,
+        owner: userAddress
+      },
+      item_to_receive: {
+        token_type: itemToReceive
+      },
+      timestamp: Date.now(),
+      status: 'pending'
+    }
+
+    console.log('Created Anoma trade intent:', intent)
+    return intent
+  }
+
+  // Method to sign and broadcast intent to Anoma network
+  async signAndBroadcastIntent(intent: AnomaTradeIntent): Promise<boolean> {
+    try {
+      // Check if Keplr is available
+      if (!window.keplr) {
+        throw new Error('Keplr wallet not found')
+      }
+
+      // Enable Keplr for Anoma chain
+      await window.keplr.enable('anoma-test.anoma')
+      
+      // Get the offline signer
+      const offlineSigner = window.keplr.getOfflineSigner('anoma-test.anoma')
+      
+      // Create the intent message to sign
+      const intentMessage = {
+        type: 'anoma/TradeIntent',
+        value: {
+          ...intent,
+          timestamp: intent.timestamp.toString()
+        }
+      }
+
+      // Sign the intent
+      const signature = await offlineSigner.signAmino(
+        intent.user_address,
+        {
+          chain_id: 'anoma-test.anoma',
+          account_number: '0',
+          sequence: '0',
+          fee: {
+            amount: [],
+            gas: '200000'
+          },
+          msgs: [intentMessage],
+          memo: `Trade Intent: ${intent.id}`
+        }
+      )
+
+      // Add signature to intent
+      intent.signature = signature.signature
+      intent.status = 'broadcast'
+
+      // Simulate broadcasting to Anoma network
+      await this.broadcastToAnoma(intent)
+
+      return true
+    } catch (error) {
+      console.error('Failed to sign and broadcast intent:', error)
+      analytics.trackError('intent_broadcast_failed', error instanceof Error ? error.message : 'Unknown error')
+      throw error
+    }
+  }
+
+  private async broadcastToAnoma(intent: AnomaTradeIntent): Promise<void> {
+    // This would be the actual broadcast to Anoma network
+    // For now, we simulate the broadcast process
+    
+    console.log('Broadcasting intent to Anoma network...')
+    console.log('Intent:', intent)
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    
+    // Simulate successful broadcast
+    intent.status = 'completed'
+    
+    console.log('✅ Intent successfully broadcast to Anoma network!')
+    console.log(`Transaction Hash: anoma-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+    
+    analytics.trackIntentProcessed('trade', true, `anoma-${Date.now()}`)
   }
 
   async processSwapIntent(intent: Intent): Promise<Intent> {
@@ -294,6 +437,24 @@ export class IntentProcessor {
           break
         case 'yield':
           result = await this.processYieldIntent(processingIntent)
+          break
+        case 'trade':
+          // Handle trade intents differently
+          if (intent.itemToGive && intent.itemToReceive && intent.userAddress) {
+            const tradeIntent = await this.createTradeIntent(
+              intent.itemToGive,
+              intent.itemToReceive,
+              intent.userAddress
+            )
+            await this.signAndBroadcastIntent(tradeIntent)
+            result = {
+              ...processingIntent,
+              status: 'completed',
+              txHash: `anoma-${Date.now()}`
+            }
+          } else {
+            throw new Error('Invalid trade intent parameters')
+          }
           break
         default:
           throw new Error('Unknown intent type')

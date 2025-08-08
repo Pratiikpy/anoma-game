@@ -1,18 +1,35 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, CheckCircle, Clock, Zap, Globe, Shield, Wallet, AlertCircle, Sparkles } from 'lucide-react'
+import { ArrowRight, CheckCircle, Clock, Zap, Globe, Shield, Wallet, AlertCircle, Sparkles, Gamepad2 } from 'lucide-react'
 import { useAppStore } from '../lib/store'
 import WalletConnect from '../components/WalletConnect'
+import GlitchMinter from '../components/GlitchMinter'
 import { toast } from 'react-hot-toast'
+import { anomaNFTManager, GLITCH_TYPES, GlitchNFT } from '../lib/anomaNFTs'
 
 const IntentDemo: React.FC = () => {
-  const { isConnected, intents, isProcessing, createIntent, processIntent } = useAppStore()
+  const { isConnected, intents, isProcessing, createIntent, processIntent, walletAddress } = useAppStore()
   const [selectedIntent, setSelectedIntent] = useState<string>('swap')
   const [amount, setAmount] = useState<string>('')
   const [fromToken, setFromToken] = useState<string>('ETH')
   const [toToken, setToToken] = useState<string>('USDC')
   const [fromChain, setFromChain] = useState<string>('Ethereum')
   const [toChain, setToChain] = useState<string>('Polygon')
+  
+  // Glitch trading state
+  const [userGlitches, setUserGlitches] = useState<GlitchNFT[]>([])
+  const [selectedGlitchToGive, setSelectedGlitchToGive] = useState<string>('')
+  const [selectedGlitchToReceive, setSelectedGlitchToReceive] = useState<string>('')
+
+  // Load user's glitches when wallet connects
+  useEffect(() => {
+    if (isConnected && walletAddress) {
+      const glitches = anomaNFTManager.getGlitchesByOwner(walletAddress)
+      setUserGlitches(glitches)
+    } else {
+      setUserGlitches([])
+    }
+  }, [isConnected, walletAddress])
 
   const intentTypes = [
     {
@@ -42,6 +59,15 @@ const IntentDemo: React.FC = () => {
       description: 'Automatically find and deploy to the best yield opportunities',
       icon: <Zap className="w-6 h-6" />,
       example: `I want to earn the highest possible yield on my ${amount || '2000'} ${fromToken} across all chains`
+    },
+    {
+      id: 'trade',
+      title: 'Trade Glitches',
+      description: 'Trade Glitch NFTs with other users on Anoma network',
+      icon: <Gamepad2 className="w-6 h-6" />,
+      example: selectedGlitchToGive && selectedGlitchToReceive 
+        ? `I want to trade my ${anomaNFTManager.getGlitchById(selectedGlitchToGive)?.name || 'Glitch'} for a ${GLITCH_TYPES[selectedGlitchToReceive]?.name || 'Glitch'}`
+        : 'Select Glitches to trade'
     }
   ]
 
@@ -51,27 +77,48 @@ const IntentDemo: React.FC = () => {
       return
     }
 
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Please enter a valid amount')
-      return
+    if (selectedIntent === 'trade') {
+      // Handle Glitch trading
+      if (!selectedGlitchToGive || !selectedGlitchToReceive) {
+        toast.error('Please select both Glitches to trade')
+        return
+      }
+
+      const intentData = {
+        type: 'trade' as any,
+        description: `Trade ${anomaNFTManager.getGlitchById(selectedGlitchToGive)?.name} for ${GLITCH_TYPES[selectedGlitchToReceive]?.name}`,
+        chains: ['Anoma'],
+        itemToGive: selectedGlitchToGive,
+        itemToReceive: selectedGlitchToReceive,
+        userAddress: walletAddress || ''
+      }
+
+      await createIntent(intentData)
+      toast.success('Trade intent created successfully!')
+    } else {
+      // Handle other intent types
+      if (!amount || parseFloat(amount) <= 0) {
+        toast.error('Please enter a valid amount')
+        return
+      }
+
+      const selectedType = intentTypes.find(t => t.id === selectedIntent)
+      if (!selectedType) return
+
+      const intentData = {
+        type: selectedIntent as any,
+        description: selectedType.example,
+        chains: [fromChain, toChain],
+        amount,
+        fromToken,
+        toToken,
+        fromChain,
+        toChain
+      }
+
+      await createIntent(intentData)
+      toast.success('Intent created successfully!')
     }
-
-    const selectedType = intentTypes.find(t => t.id === selectedIntent)
-    if (!selectedType) return
-
-    const intentData = {
-      type: selectedIntent as any,
-      description: selectedType.example,
-      chains: [fromChain, toChain],
-      amount,
-      fromToken,
-      toToken,
-      fromChain,
-      toChain
-    }
-
-    await createIntent(intentData)
-    toast.success('Intent created successfully!')
   }
 
   const handleProcessIntent = async (intentId: string) => {
@@ -109,127 +156,140 @@ const IntentDemo: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pt-16 bg-anoma-dark relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-anoma-dark pt-20 pb-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4"
-          >
-            <Sparkles className="w-12 h-12 mx-auto text-anoma-red floating" />
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-5xl font-bold text-white mb-4"
-          >
-            Intent-Centric <span className="text-gradient glow-text">Application</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-xl text-gray-300 max-w-2xl mx-auto"
-          >
-            Experience the power of intent-centric applications. Connect your wallet and create real intents 
-            that will be processed across multiple blockchains.
-          </motion.p>
-        </div>
-
-        {/* Wallet Connection */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+            Intent Demo
+          </h1>
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            Experience the future of blockchain interactions with Anoma's intent-centric architecture
+          </p>
+        </motion.div>
+
+        {/* Wallet Connection */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           className="flex justify-center mb-8"
         >
           <WalletConnect />
         </motion.div>
 
-        {!isConnected && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-8"
+        {/* Glitch Minter */}
+        {isConnected && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
           >
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            </motion.div>
-            <p className="text-gray-400 text-lg">Connect your wallet to start creating intents</p>
+            <GlitchMinter />
           </motion.div>
         )}
 
+        {/* Intent Creation */}
         {isConnected && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Intent Creation */}
-            <motion.div 
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="glass-effect p-8 rounded-2xl border border-anoma-light-gray/50 hover-lift"
-            >
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <Sparkles className="w-6 h-6 mr-2 text-anoma-red" />
-                Create Your Intent
-              </h2>
-              
-              {/* Intent Type Selection */}
-              <div className="space-y-4 mb-6">
-                {intentTypes.map((type) => (
-                  <motion.div
-                    key={type.id}
-                    onClick={() => setSelectedIntent(type.id)}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 hover-lift ${
-                      selectedIntent === type.id
-                        ? 'border-anoma-red bg-anoma-red/10 neon-border'
-                        : 'border-anoma-light-gray hover:border-anoma-red/50'
-                    }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <motion.div 
-                        className="w-10 h-10 bg-anoma-red rounded-lg flex items-center justify-center"
-                        whileHover={{ rotate: 5, scale: 1.1 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {type.icon}
-                      </motion.div>
-                      <div>
-                        <h3 className="text-white font-semibold">{type.title}</h3>
-                        <p className="text-gray-400 text-sm">{type.description}</p>
-                      </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-anoma-gray rounded-2xl p-8 mb-8 border border-anoma-light-gray"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Create Intent</h2>
+            
+            {/* Intent Type Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              {intentTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setSelectedIntent(type.id)}
+                  className={`p-4 rounded-lg border transition-all duration-300 ${
+                    selectedIntent === type.id
+                      ? 'border-anoma-red bg-anoma-red/20'
+                      : 'border-anoma-light-gray hover:border-anoma-red'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="text-anoma-red">{type.icon}</div>
+                    <div className="text-left">
+                      <h3 className="font-semibold text-white">{type.title}</h3>
+                      <p className="text-sm text-gray-400">{type.description}</p>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
+                  </div>
+                </button>
+              ))}
+            </div>
 
-              {/* Intent Parameters */}
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-white text-sm font-medium mb-2">Amount</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    className="w-full px-4 py-2 bg-anoma-light-gray border border-anoma-light-gray rounded-lg text-white placeholder-gray-400 focus:border-anoma-red focus:outline-none transition-all duration-300"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+            {/* Intent Configuration */}
+            <div className="space-y-6">
+              {selectedIntent === 'trade' ? (
+                // Glitch Trading Interface
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">From Token</label>
+                    <label className="block text-white font-medium mb-2">
+                      Glitch to Give
+                    </label>
+                    <select
+                      value={selectedGlitchToGive}
+                      onChange={(e) => setSelectedGlitchToGive(e.target.value)}
+                      className="w-full bg-anoma-dark border border-anoma-light-gray rounded-lg px-4 py-3 text-white focus:border-anoma-red focus:outline-none"
+                    >
+                      <option value="">Select a Glitch to trade</option>
+                      {userGlitches.map((glitch) => (
+                        <option key={glitch.id} value={glitch.id}>
+                          {glitch.name} (Level {glitch.level}) - {glitch.rarity}
+                        </option>
+                      ))}
+                    </select>
+                    {userGlitches.length === 0 && (
+                      <p className="text-gray-400 text-sm mt-2">
+                        You don't have any Glitches yet. Mint some first!
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-medium mb-2">
+                      Glitch to Receive
+                    </label>
+                    <select
+                      value={selectedGlitchToReceive}
+                      onChange={(e) => setSelectedGlitchToReceive(e.target.value)}
+                      className="w-full bg-anoma-dark border border-anoma-light-gray rounded-lg px-4 py-3 text-white focus:border-anoma-red focus:outline-none"
+                    >
+                      <option value="">Select a Glitch type to receive</option>
+                      {Object.entries(GLITCH_TYPES).map(([id, type]) => (
+                        <option key={id} value={id}>
+                          {type.name} - {type.rarity}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                // Traditional Intent Interface
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-white font-medium mb-2">Amount</label>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.0"
+                      className="w-full bg-anoma-dark border border-anoma-light-gray rounded-lg px-4 py-3 text-white focus:border-anoma-red focus:outline-none"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-medium mb-2">From Token</label>
                     <select
                       value={fromToken}
                       onChange={(e) => setFromToken(e.target.value)}
-                      className="w-full px-4 py-2 bg-anoma-light-gray border border-anoma-light-gray rounded-lg text-white focus:border-anoma-red focus:outline-none transition-all duration-300"
+                      className="w-full bg-anoma-dark border border-anoma-light-gray rounded-lg px-4 py-3 text-white focus:border-anoma-red focus:outline-none"
                     >
                       <option value="ETH">ETH</option>
                       <option value="USDC">USDC</option>
@@ -239,11 +299,11 @@ const IntentDemo: React.FC = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">To Token</label>
+                    <label className="block text-white font-medium mb-2">To Token</label>
                     <select
                       value={toToken}
                       onChange={(e) => setToToken(e.target.value)}
-                      className="w-full px-4 py-2 bg-anoma-light-gray border border-anoma-light-gray rounded-lg text-white focus:border-anoma-red focus:outline-none transition-all duration-300"
+                      className="w-full bg-anoma-dark border border-anoma-light-gray rounded-lg px-4 py-3 text-white focus:border-anoma-red focus:outline-none"
                     >
                       <option value="USDC">USDC</option>
                       <option value="ETH">ETH</option>
@@ -251,217 +311,86 @@ const IntentDemo: React.FC = () => {
                       <option value="DAI">DAI</option>
                     </select>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+                  
                   <div>
-                    <label className="block text-white text-sm font-medium mb-2">From Chain</label>
+                    <label className="block text-white font-medium mb-2">Chain</label>
                     <select
                       value={fromChain}
                       onChange={(e) => setFromChain(e.target.value)}
-                      className="w-full px-4 py-2 bg-anoma-light-gray border border-anoma-light-gray rounded-lg text-white focus:border-anoma-red focus:outline-none transition-all duration-300"
+                      className="w-full bg-anoma-dark border border-anoma-light-gray rounded-lg px-4 py-3 text-white focus:border-anoma-red focus:outline-none"
                     >
                       <option value="Ethereum">Ethereum</option>
                       <option value="Polygon">Polygon</option>
-                      <option value="Arbitrum">Arbitrum</option>
-                      <option value="Optimism">Optimism</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-white text-sm font-medium mb-2">To Chain</label>
-                    <select
-                      value={toChain}
-                      onChange={(e) => setToChain(e.target.value)}
-                      className="w-full px-4 py-2 bg-anoma-light-gray border border-anoma-light-gray rounded-lg text-white focus:border-anoma-red focus:outline-none transition-all duration-300"
-                    >
-                      <option value="Polygon">Polygon</option>
-                      <option value="Ethereum">Ethereum</option>
                       <option value="Arbitrum">Arbitrum</option>
                       <option value="Optimism">Optimism</option>
                     </select>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Example Intent */}
-              <div className="bg-anoma-light-gray p-4 rounded-lg mb-6 border border-anoma-light-gray/50">
-                <h4 className="text-white font-semibold mb-2">Your Intent:</h4>
-                <p className="text-gray-300 italic">
-                  "{intentTypes.find(t => t.id === selectedIntent)?.example}"
-                </p>
-              </div>
-
+              {/* Create Intent Button */}
               <motion.button
-                onClick={handleCreateIntent}
-                disabled={isProcessing || !amount}
-                className="w-full py-4 bg-anoma-red text-white font-semibold rounded-lg hover:bg-anoma-red/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 hover-lift neon-border"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={handleCreateIntent}
+                disabled={isProcessing}
+                className="w-full bg-anoma-red text-white font-semibold py-4 rounded-lg hover:bg-anoma-red/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isProcessing ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Create Intent</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
+                {isProcessing ? 'Creating Intent...' : 'Create Intent'}
               </motion.button>
-            </motion.div>
-
-            {/* Intent History */}
-            <motion.div 
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="glass-effect p-8 rounded-2xl border border-anoma-light-gray/50 hover-lift"
-            >
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <Sparkles className="w-6 h-6 mr-2 text-anoma-red" />
-                Intent History
-              </h2>
-              
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                <AnimatePresence>
-                  {intents.map((intent) => (
-                    <motion.div
-                      key={intent.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="bg-anoma-light-gray p-4 rounded-lg border border-anoma-light-gray/50 hover-lift"
-                      whileHover={{ scale: 1.02 }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(intent.status)}
-                          <span className={`font-semibold capitalize ${getStatusColor(intent.status)}`}>
-                            {intent.type} Intent
-                          </span>
-                        </div>
-                        <span className="text-gray-400 text-sm">
-                          {intent.timestamp.toLocaleTimeString()}
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-300 text-sm mb-2">{intent.description}</p>
-                      
-                      {intent.amount && (
-                        <p className="text-gray-400 text-sm mb-2">
-                          Amount: {intent.amount} {intent.fromToken}
-                        </p>
-                      )}
-                      
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {intent.chains.map((chain) => (
-                          <span
-                            key={chain}
-                            className="px-2 py-1 bg-anoma-red/20 text-anoma-red text-xs rounded-full"
-                          >
-                            {chain}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      {intent.txHash && (
-                        <div className="flex items-center space-x-2 text-xs">
-                          <span className="text-gray-400">TX:</span>
-                          <a
-                            href={`https://etherscan.io/tx/${intent.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-anoma-red hover:underline"
-                          >
-                            {intent.txHash.slice(0, 10)}...{intent.txHash.slice(-8)}
-                          </a>
-                        </div>
-                      )}
-                      
-                      {intent.status === 'pending' && (
-                        <motion.button
-                          onClick={() => handleProcessIntent(intent.id)}
-                          className="mt-2 px-3 py-1 bg-anoma-red text-white text-xs rounded hover:bg-anoma-red/80 transition-all duration-300"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          Process Intent
-                        </motion.button>
-                      )}
-                      
-                      {intent.error && (
-                        <p className="text-red-400 text-xs mt-2">{intent.error}</p>
-                      )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                
-                {intents.length === 0 && (
-                  <div className="text-center py-8 text-gray-400">
-                    <motion.div
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    </motion.div>
-                    <p>No intents created yet. Create your first intent to get started!</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         )}
 
-        {/* How It Works */}
-        <motion.div 
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-24 text-center"
-        >
-          <h2 className="text-3xl font-bold text-white mb-8">How Intent-Centric Applications Work</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                step: "1",
-                title: "Connect Wallet",
-                description: "Connect your wallet to interact with the intent machine"
-              },
-              {
-                step: "2", 
-                title: "Declare Intent",
-                description: "Simply state what you want to achieve in natural language"
-              },
-              {
-                step: "3",
-                title: "Watch Execution", 
-                description: "Anoma automatically handles cross-chain routing and execution"
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="glass-effect p-6 rounded-lg border border-anoma-light-gray/50 hover-lift"
-                whileHover={{ y: -10 }}
-              >
-                <motion.div 
-                  className="w-12 h-12 bg-anoma-red rounded-lg flex items-center justify-center mx-auto mb-4"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ duration: 0.2 }}
+        {/* Intent List */}
+        {intents.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-anoma-gray rounded-2xl p-8 border border-anoma-light-gray"
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">Your Intents</h2>
+            <div className="space-y-4">
+              {intents.map((intent) => (
+                <motion.div
+                  key={intent.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="bg-anoma-dark rounded-lg p-6 border border-anoma-light-gray"
                 >
-                  <span className="text-white font-bold text-xl">{item.step}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        {getStatusIcon(intent.status)}
+                        <h3 className="font-semibold text-white">{intent.description}</h3>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-400">
+                        <span>Type: {intent.type}</span>
+                        <span>Status: <span className={getStatusColor(intent.status)}>{intent.status}</span></span>
+                        <span>Created: {intent.timestamp.toLocaleString()}</span>
+                        {intent.txHash && (
+                          <span>TX: {intent.txHash.slice(0, 10)}...</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {intent.status === 'pending' && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleProcessIntent(intent.id)}
+                        disabled={isProcessing}
+                        className="px-4 py-2 bg-anoma-red text-white rounded-lg hover:bg-anoma-red/80 transition-colors disabled:opacity-50"
+                      >
+                        {isProcessing ? 'Processing...' : 'Process'}
+                      </motion.button>
+                    )}
+                  </div>
                 </motion.div>
-                <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-400">{item.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   )
