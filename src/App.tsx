@@ -11,6 +11,8 @@ import SmoothScroll from './components/SmoothScroll'
 import ErrorBoundary from './lib/errorBoundary'
 import PerformanceMonitor from './components/PerformanceMonitor'
 import { analytics } from './lib/analytics'
+import { useAppStore } from './lib/store'
+import { anomaClient } from './lib/anomaClient'
 
 // Analytics wrapper component
 const AnalyticsWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,6 +25,36 @@ const AnalyticsWrapper: React.FC<{ children: React.ReactNode }> = ({ children })
   return <>{children}</>
 }
 
+// Transaction Status Monitor component
+const TransactionMonitor: React.FC = () => {
+  const { transactionHistory, updateTransactionStatus } = useAppStore()
+
+  useEffect(() => {
+    // Only monitor if there are pending transactions
+    const pendingTransactions = transactionHistory.filter(tx => tx.status === 'pending')
+    if (pendingTransactions.length === 0) return
+
+    const interval = setInterval(async () => {
+      for (const tx of pendingTransactions) {
+        try {
+          const status = await anomaClient.queryTxStatus(tx.hash)
+          
+          // Only update if status has changed
+          if (status.status !== tx.status) {
+            updateTransactionStatus(tx.hash, status)
+          }
+        } catch (error) {
+          console.error(`Failed to query transaction status for ${tx.hash}:`, error)
+        }
+      }
+    }, 5000) // Check every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [transactionHistory, updateTransactionStatus])
+
+  return null
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -30,6 +62,7 @@ function App() {
         <AnalyticsWrapper>
           <div className="min-h-screen bg-anoma-dark relative overflow-hidden">
             <PerformanceMonitor />
+            <TransactionMonitor />
             <ParticleBackground />
             <SmoothScroll />
             <Header />

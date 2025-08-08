@@ -4,6 +4,7 @@ import { Plus, Sparkles, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { anomaNFTManager, GLITCH_TYPES, GlitchNFT } from '../lib/anomaNFTs'
 import { useAppStore } from '../lib/store'
+import { IntentProcessor } from '../lib/intentProcessor'
 
 const GlitchMinter: React.FC = () => {
   const { isConnected, walletAddress } = useAppStore()
@@ -23,17 +24,30 @@ const GlitchMinter: React.FC = () => {
 
     setIsMinting(true)
     try {
-      const glitch = await anomaNFTManager.mintGlitchOnChain(selectedGlitchType, walletAddress)
-      toast.success(`Successfully minted ${glitch.name}!`)
+      // Use the real minting function from IntentProcessor
+      const processor = new IntentProcessor()
+      const txHash = await processor.mintGlitchOnChain(selectedGlitchType, walletAddress)
+      
+      toast.success(`Successfully minted ${GLITCH_TYPES[selectedGlitchType]?.name}! Transaction: ${txHash.slice(0, 8)}...`)
       setSelectedGlitchType('')
       
-      // Refresh the page to show the new glitch
+      // Refresh glitches after successful minting
+      const { refreshGlitches } = useAppStore.getState()
       setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+        refreshGlitches()
+      }, 2000) // Wait 2 seconds for transaction to be processed
+      
     } catch (error) {
       console.error('Failed to mint glitch:', error)
-      toast.error('Failed to mint Glitch. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      
+      if (errorMessage.includes('user rejected')) {
+        toast.error('Minting cancelled by user')
+      } else if (errorMessage.includes('network')) {
+        toast.error('Network error. Please check your connection and try again.')
+      } else {
+        toast.error(`Failed to mint Glitch: ${errorMessage}`)
+      }
     } finally {
       setIsMinting(false)
     }
@@ -55,7 +69,7 @@ const GlitchMinter: React.FC = () => {
       </div>
       
       <p className="text-gray-400 text-sm mb-4">
-        Mint new Glitch NFTs to trade with other users on the Anoma network.
+        Mint new Glitch NFTs on the Anoma blockchain. Each mint requires a transaction signature.
       </p>
 
       <div className="space-y-4">
@@ -116,7 +130,7 @@ const GlitchMinter: React.FC = () => {
           {isMinting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Minting...</span>
+              <span>Minting on Anoma...</span>
             </>
           ) : (
             <>

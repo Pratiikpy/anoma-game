@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Wallet, LogOut, Copy, ExternalLink } from 'lucide-react'
+import { Wallet, LogOut, Copy, ExternalLink, Wifi, WifiOff, AlertCircle } from 'lucide-react'
 import { useAppStore } from '../lib/store'
 import { toast } from 'react-hot-toast'
 
@@ -22,7 +22,17 @@ declare const window: KeplrWindow
 const ANOMA_CHAIN_ID = 'anoma-test.anoma' // Anoma testnet chain ID
 
 const WalletConnect: React.FC = () => {
-  const { isConnected, walletAddress, balance, connectWallet, disconnectWallet } = useAppStore()
+  const { 
+    isConnected, 
+    walletAddress, 
+    balance, 
+    connectWallet, 
+    disconnectWallet,
+    networkStatus,
+    connectToNetwork,
+    disconnectFromNetwork
+  } = useAppStore()
+  
   const [isLoading, setIsLoading] = useState(false)
   const [anomaAddress, setAnomaAddress] = useState<string>('')
 
@@ -96,6 +106,45 @@ const WalletConnect: React.FC = () => {
     }
   }
 
+  const getNetworkStatusIcon = () => {
+    switch (networkStatus.status) {
+      case 'connected':
+        return <Wifi className="w-4 h-4 text-green-500" />
+      case 'connecting':
+        return <div className="w-4 h-4 border-2 border-anoma-red border-t-transparent rounded-full animate-spin" />
+      case 'error':
+        return <AlertCircle className="w-4 h-4 text-red-500" />
+      default:
+        return <WifiOff className="w-4 h-4 text-gray-500" />
+    }
+  }
+
+  const getNetworkStatusText = () => {
+    switch (networkStatus.status) {
+      case 'connected':
+        return 'Connected'
+      case 'connecting':
+        return 'Connecting...'
+      case 'error':
+        return 'Network Error'
+      default:
+        return 'Disconnected'
+    }
+  }
+
+  const getNetworkStatusColor = () => {
+    switch (networkStatus.status) {
+      case 'connected':
+        return 'text-green-500'
+      case 'connecting':
+        return 'text-anoma-red'
+      case 'error':
+        return 'text-red-500'
+      default:
+        return 'text-gray-500'
+    }
+  }
+
   if (isConnected && anomaAddress) {
     return (
       <motion.div
@@ -103,6 +152,15 @@ const WalletConnect: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center space-x-4"
       >
+        {/* Network Status */}
+        <div className="flex items-center space-x-2 bg-anoma-gray px-3 py-2 rounded-lg border border-anoma-light-gray">
+          {getNetworkStatusIcon()}
+          <span className={`text-sm font-medium ${getNetworkStatusColor()}`}>
+            {getNetworkStatusText()}
+          </span>
+        </div>
+
+        {/* Wallet Info */}
         <div className="bg-anoma-gray px-4 py-2 rounded-lg border border-anoma-light-gray">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
