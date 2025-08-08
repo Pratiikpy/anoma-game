@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Sparkles, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { anomaNFTManager, GLITCH_TYPES, GlitchNFT } from '../lib/anomaNFTs'
+import { GLITCH_TYPES } from '../lib/anomaNFTs'
 import { useAppStore } from '../lib/store'
 import { IntentProcessor } from '../lib/intentProcessor'
 

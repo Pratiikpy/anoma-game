@@ -16,7 +16,6 @@
     "deploy": "npm run build && vercel --prod"
   },
   "dependencies": {
-    "@types/node": "^20.10.0",
     "ethers": "^6.8.1",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.294.0",
@@ -27,6 +26,7 @@
     "zustand": "^4.4.6"
   },
   "devDependencies": {
+    "@types/node": "^20.10.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@typescript-eslint/eslint-plugin": "^6.10.0",

@@ -1,5 +1,3 @@
-import { toast } from 'react-hot-toast'
-
 export interface ChainStatus {
   status: 'connected' | 'disconnected' | 'connecting' | 'error'
   blockHeight?: number

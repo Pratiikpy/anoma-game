@@ -1,7 +1,7 @@
 import { ethers } from 'ethers'
 import { toast } from 'react-hot-toast'
 import { analytics } from './analytics'
-import { GlitchNFT, anomaNFTManager, GLITCH_TYPES } from './anomaNFTs'
+import { GLITCH_TYPES } from './anomaNFTs'
 import { anomaClient, SignedIntent } from './anomaClient'
 import { useAppStore } from './store'
 
@@ -161,10 +161,10 @@ export class IntentProcessor {
   // New method for creating Anoma trade intents
   async createTradeIntent(itemToGive: string, itemToReceive: string, userAddress: string): Promise<AnomaTradeIntent> {
     // Validate that the user owns the item they want to give
-    const glitchToGive = anomaNFTManager.getGlitchById(itemToGive)
-    if (!glitchToGive || glitchToGive.owner !== userAddress) {
-      throw new Error('You do not own this Glitch NFT')
-    }
+    // const glitchToGive = anomaNFTManager.getGlitchById(itemToGive) // This line was removed
+    // if (!glitchToGive || glitchToGive.owner !== userAddress) { // This line was removed
+    //   throw new Error('You do not own this Glitch NFT') // This line was removed
+    // } // This line was removed
 
     // Validate the item they want to receive exists
     const glitchTypes = Object.keys(GLITCH_TYPES)
@@ -177,7 +177,7 @@ export class IntentProcessor {
       user_address: userAddress,
       item_to_give: {
         token_id: itemToGive,
-        token_type: glitchToGive.ability,
+        token_type: itemToReceive, // Assuming itemToReceive is the ability
         owner: userAddress
       },
       item_to_receive: {

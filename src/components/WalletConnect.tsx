@@ -24,13 +24,9 @@ const ANOMA_CHAIN_ID = 'anoma-test.anoma' // Anoma testnet chain ID
 const WalletConnect: React.FC = () => {
   const { 
     isConnected, 
-    walletAddress, 
-    balance, 
     connectWallet, 
     disconnectWallet,
-    networkStatus,
-    connectToNetwork,
-    disconnectFromNetwork
+    networkStatus
   } = useAppStore()
   
   const [isLoading, setIsLoading] = useState(false)

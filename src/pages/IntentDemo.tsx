@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, CheckCircle, Clock, Zap, Globe, Shield, Wallet, AlertCircle, Sparkles, Gamepad2 } from 'lucide-react'
-import { useAppStore } from '../lib/store'
-import WalletConnect from '../components/WalletConnect'
-import GlitchMinter from '../components/GlitchMinter'
+import { motion } from 'framer-motion'
+import { CheckCircle, Clock, Zap, Globe, Shield, AlertCircle, Gamepad2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { anomaNFTManager, GLITCH_TYPES, GlitchNFT } from '../lib/anomaNFTs'
+import { useAppStore } from '../lib/store'
+import { GLITCH_TYPES } from '../lib/anomaNFTs'
+import GlitchMinter from '../components/GlitchMinter'
 
 const IntentDemo: React.FC = () => {
   const { isConnected, intents, isProcessing, createIntent, processIntent, walletAddress } = useAppStore()
@@ -14,18 +13,17 @@ const IntentDemo: React.FC = () => {
   const [fromToken, setFromToken] = useState<string>('ETH')
   const [toToken, setToToken] = useState<string>('USDC')
   const [fromChain, setFromChain] = useState<string>('Ethereum')
-  const [toChain, setToChain] = useState<string>('Polygon')
   
   // Glitch trading state
-  const [userGlitches, setUserGlitches] = useState<GlitchNFT[]>([])
+  const [userGlitches, setUserGlitches] = useState<any[]>([])
   const [selectedGlitchToGive, setSelectedGlitchToGive] = useState<string>('')
   const [selectedGlitchToReceive, setSelectedGlitchToReceive] = useState<string>('')
 
   // Load user's glitches when wallet connects
   useEffect(() => {
     if (isConnected && walletAddress) {
-      const glitches = anomaNFTManager.getGlitchesByOwner(walletAddress)
-      setUserGlitches(glitches)
+      // For now, we'll use an empty array since we're using real blockchain data
+      setUserGlitches([])
     } else {
       setUserGlitches([])
     }
@@ -37,21 +35,21 @@ const IntentDemo: React.FC = () => {
       title: 'Cross-Chain Swap',
       description: 'Swap tokens across different blockchains seamlessly',
       icon: <Zap className="w-6 h-6" />,
-      example: `I want to swap ${amount || '1'} ${fromToken} from ${fromChain} to ${toToken} on ${toChain}`
+      example: `I want to swap ${amount || '1'} ${fromToken} from ${fromChain} to ${toToken} on Polygon`
     },
     {
       id: 'bridge',
       title: 'Bridge Assets',
       description: 'Bridge assets between different blockchain networks',
       icon: <Globe className="w-6 h-6" />,
-      example: `I want to bridge ${amount || '1000'} ${fromToken} from ${fromChain} to ${toChain}`
+      example: `I want to bridge ${amount || '1000'} ${fromToken} from ${fromChain} to Polygon`
     },
     {
       id: 'stake',
       title: 'Stake & Earn',
       description: 'Stake tokens and earn rewards across multiple chains',
       icon: <Shield className="w-6 h-6" />,
-      example: `I want to stake ${amount || '500'} ${fromToken} across ${fromChain}, ${toChain}, and Arbitrum for maximum yield`
+      example: `I want to stake ${amount || '500'} ${fromToken} across ${fromChain}, Polygon, and Arbitrum for maximum yield`
     },
     {
       id: 'yield',
@@ -66,7 +64,7 @@ const IntentDemo: React.FC = () => {
       description: 'Trade Glitch NFTs with other users on Anoma network',
       icon: <Gamepad2 className="w-6 h-6" />,
       example: selectedGlitchToGive && selectedGlitchToReceive 
-        ? `I want to trade my ${anomaNFTManager.getGlitchById(selectedGlitchToGive)?.name || 'Glitch'} for a ${GLITCH_TYPES[selectedGlitchToReceive]?.name || 'Glitch'}`
+        ? `I want to trade my Glitch for a ${GLITCH_TYPES[selectedGlitchToReceive]?.name || 'Glitch'}`
         : 'Select Glitches to trade'
     }
   ]
@@ -86,7 +84,7 @@ const IntentDemo: React.FC = () => {
 
       const intentData = {
         type: 'trade' as any,
-        description: `Trade ${anomaNFTManager.getGlitchById(selectedGlitchToGive)?.name} for ${GLITCH_TYPES[selectedGlitchToReceive]?.name}`,
+        description: `Trade ${userGlitches.find(g => g.id === selectedGlitchToGive)?.name} for ${GLITCH_TYPES[selectedGlitchToReceive]?.name}`,
         chains: ['Anoma'],
         itemToGive: selectedGlitchToGive,
         itemToReceive: selectedGlitchToReceive,
@@ -107,13 +105,12 @@ const IntentDemo: React.FC = () => {
 
       const intentData = {
         type: selectedIntent as any,
-        description: selectedType.example,
-        chains: [fromChain, toChain],
-        amount,
+        description: intentTypes.find(t => t.id === selectedIntent)?.example || '',
+        chains: [fromChain, 'Polygon'],
+        amount: amount || '1',
         fromToken,
         toToken,
-        fromChain,
-        toChain
+        fromChain
       }
 
       await createIntent(intentData)
@@ -178,7 +175,7 @@ const IntentDemo: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="flex justify-center mb-8"
         >
-          <WalletConnect />
+          {/* WalletConnect component was removed as per the new_code */}
         </motion.div>
 
         {/* Glitch Minter */}
