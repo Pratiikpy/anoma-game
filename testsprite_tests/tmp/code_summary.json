@@ -1,0 +1,140 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "React 18",
+    "Vite",
+    "Tailwind CSS",
+    "Framer Motion",
+    "Ethers.js",
+    "Zustand",
+    "React Router DOM",
+    "Lucide React",
+    "React Hot Toast"
+  ],
+  "features": [
+    {
+      "name": "Intent-Centric Application",
+      "description": "Core application showcasing Anoma's intent-centric blockchain interactions",
+      "files": [
+        "src/App.tsx",
+        "src/main.tsx",
+        "src/index.css"
+      ]
+    },
+    {
+      "name": "Home Page",
+      "description": "Landing page with hero section, intent machine visualization, and feature showcase",
+      "files": [
+        "src/pages/Home.tsx"
+      ]
+    },
+    {
+      "name": "Intent Demo",
+      "description": "Interactive intent creation and processing interface with real blockchain integration",
+      "files": [
+        "src/pages/IntentDemo.tsx"
+      ]
+    },
+    {
+      "name": "About Page",
+      "description": "Information page about Anoma technology and vision",
+      "files": [
+        "src/pages/About.tsx"
+      ]
+    },
+    {
+      "name": "Header Navigation",
+      "description": "Responsive navigation header with animated logo and menu items",
+      "files": [
+        "src/components/Header.tsx"
+      ]
+    },
+    {
+      "name": "Footer",
+      "description": "Application footer with links and social media icons",
+      "files": [
+        "src/components/Footer.tsx"
+      ]
+    },
+    {
+      "name": "Wallet Connection",
+      "description": "Web3 wallet integration component with MetaMask support",
+      "files": [
+        "src/components/WalletConnect.tsx"
+      ]
+    },
+    {
+      "name": "Particle Background",
+      "description": "Animated particle system for visual enhancement",
+      "files": [
+        "src/components/ParticleBackground.tsx"
+      ]
+    },
+    {
+      "name": "Smooth Scroll",
+      "description": "Custom scroll behavior with progress indicator",
+      "files": [
+        "src/components/SmoothScroll.tsx"
+      ]
+    },
+    {
+      "name": "Loading Spinner",
+      "description": "Reusable loading component with animations",
+      "files": [
+        "src/components/LoadingSpinner.tsx"
+      ]
+    },
+    {
+      "name": "Performance Monitor",
+      "description": "Real-time performance tracking and Core Web Vitals monitoring",
+      "files": [
+        "src/components/PerformanceMonitor.tsx"
+      ]
+    },
+    {
+      "name": "Error Boundary",
+      "description": "Production error handling with fallback UI",
+      "files": [
+        "src/lib/errorBoundary.tsx"
+      ]
+    },
+    {
+      "name": "Analytics Service",
+      "description": "User behavior tracking and event analytics",
+      "files": [
+        "src/lib/analytics.ts"
+      ]
+    },
+    {
+      "name": "Intent Processor",
+      "description": "Blockchain transaction processing with validation and error handling",
+      "files": [
+        "src/lib/intentProcessor.ts"
+      ]
+    },
+    {
+      "name": "State Management",
+      "description": "Zustand store for application state management",
+      "files": [
+        "src/lib/store.ts"
+      ]
+    },
+    {
+      "name": "Production Build",
+      "description": "Optimized build configuration with code splitting and minification",
+      "files": [
+        "vite.config.ts",
+        "package.json",
+        "tsconfig.json",
+        "tailwind.config.js"
+      ]
+    },
+    {
+      "name": "Environment Configuration",
+      "description": "Environment variables and production configuration",
+      "files": [
+        "env.example"
+      ]
+    }
+  ]
+} 

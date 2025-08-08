@@ -1,0 +1,15 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "executionArgs": {
+    "projectName": "anoma-intent-demo",
+    "projectPath": "C:\\Users\\prate\\Downloads\\anoma game",
+    "testIds": [],
+    "additionalInstruction": "Test all functionality including wallet connection, intent creation, blockchain interactions, and production features. Focus on user experience, performance, and error handling.",
+    "envs": {
+      "API_KEY": ""
+    }
+  }
+}
