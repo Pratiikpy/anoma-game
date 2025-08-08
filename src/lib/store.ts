@@ -68,7 +68,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isConnected: true,
         walletAddress: address,
-        balance: '0.0' // Placeholder for Anoma balance
+        balance: '0.0' // Will be updated with real balance from Anoma network
       })
       
       // Connect to network and load glitches

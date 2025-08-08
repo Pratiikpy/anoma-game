@@ -1,3 +1,20 @@
+import { anomaClient } from './anomaClient'
+
+interface KeplrWindow extends Window {
+  keplr?: {
+    enable: (chainId: string) => Promise<void>
+    getOfflineSigner: (chainId: string) => any
+    getKey: (chainId: string) => Promise<{
+      name: string
+      pubKey: string
+      address: string
+      bech32Address: string
+    }>
+  }
+}
+
+declare const window: KeplrWindow
+
 export interface GlitchNFT {
   id: string
   name: string
@@ -43,76 +60,89 @@ export interface GlitchType {
   }
 }
 
-// Predefined Glitch types
 export const GLITCH_TYPES: Record<string, GlitchType> = {
-  'swap-master': {
-    id: 'swap-master',
-    name: 'Swap Master',
-    description: 'A glitch specialized in cross-chain token swaps',
+  'swap-glitch': {
+    id: 'swap-glitch',
+    name: 'Swap Glitch',
+    description: 'A glitch that can swap tokens across different chains',
     baseAbility: GlitchAbility.SWAP,
-    rarity: GlitchRarity.RARE,
-    image: '/glitches/swap-master.png',
-    attributes: {
-      power: 75,
-      speed: 90,
-      intelligence: 85,
-      luck: 60
-    }
-  },
-  'bridge-guardian': {
-    id: 'bridge-guardian',
-    name: 'Bridge Guardian',
-    description: 'Protects and facilitates cross-chain bridges',
-    baseAbility: GlitchAbility.BRIDGE,
-    rarity: GlitchRarity.EPIC,
-    image: '/glitches/bridge-guardian.png',
-    attributes: {
-      power: 90,
-      speed: 70,
-      intelligence: 80,
-      luck: 75
-    }
-  },
-  'stake-sentinel': {
-    id: 'stake-sentinel',
-    name: 'Stake Sentinel',
-    description: 'Manages and optimizes staking operations',
-    baseAbility: GlitchAbility.STAKE,
     rarity: GlitchRarity.COMMON,
-    image: '/glitches/stake-sentinel.png',
+    image: '/glitches/swap-glitch.png',
+    attributes: {
+      power: 50,
+      speed: 80,
+      intelligence: 60,
+      luck: 40
+    }
+  },
+  'bridge-glitch': {
+    id: 'bridge-glitch',
+    name: 'Bridge Glitch',
+    description: 'A glitch that can bridge assets between networks',
+    baseAbility: GlitchAbility.BRIDGE,
+    rarity: GlitchRarity.RARE,
+    image: '/glitches/bridge-glitch.png',
+    attributes: {
+      power: 70,
+      speed: 40,
+      intelligence: 90,
+      luck: 30
+    }
+  },
+  'stake-glitch': {
+    id: 'stake-glitch',
+    name: 'Stake Glitch',
+    description: 'A glitch that can stake tokens for rewards',
+    baseAbility: GlitchAbility.STAKE,
+    rarity: GlitchRarity.EPIC,
+    image: '/glitches/stake-glitch.png',
     attributes: {
       power: 60,
-      speed: 65,
-      intelligence: 90,
+      speed: 30,
+      intelligence: 80,
       luck: 70
     }
   },
-  'yield-harvester': {
-    id: 'yield-harvester',
-    name: 'Yield Harvester',
-    description: 'Specializes in yield farming and optimization',
+  'yield-glitch': {
+    id: 'yield-glitch',
+    name: 'Yield Glitch',
+    description: 'A glitch that can generate yield from DeFi protocols',
     baseAbility: GlitchAbility.YIELD,
     rarity: GlitchRarity.LEGENDARY,
-    image: '/glitches/yield-harvester.png',
+    image: '/glitches/yield-glitch.png',
     attributes: {
-      power: 85,
-      speed: 80,
+      power: 40,
+      speed: 60,
       intelligence: 95,
-      luck: 90
+      luck: 85
     }
   },
-  'fusion-catalyst': {
-    id: 'fusion-catalyst',
-    name: 'Fusion Catalyst',
-    description: 'Enables fusion of multiple glitches',
+  'fusion-glitch': {
+    id: 'fusion-glitch',
+    name: 'Fusion Glitch',
+    description: 'A glitch that can fuse with other glitches',
     baseAbility: GlitchAbility.FUSION,
     rarity: GlitchRarity.MYTHIC,
-    image: '/glitches/fusion-catalyst.png',
+    image: '/glitches/fusion-glitch.png',
     attributes: {
-      power: 100,
-      speed: 85,
-      intelligence: 100,
+      power: 90,
+      speed: 70,
+      intelligence: 85,
       luck: 95
+    }
+  },
+  'evolution-glitch': {
+    id: 'evolution-glitch',
+    name: 'Evolution Glitch',
+    description: 'A glitch that can evolve into more powerful forms',
+    baseAbility: GlitchAbility.EVOLUTION,
+    rarity: GlitchRarity.MYTHIC,
+    image: '/glitches/evolution-glitch.png',
+    attributes: {
+      power: 85,
+      speed: 90,
+      intelligence: 75,
+      luck: 80
     }
   }
 }
@@ -200,25 +230,77 @@ export class AnomaNFTManager {
     return true
   }
 
-  // Simulate on-chain minting
+  // Real on-chain minting using Anoma blockchain
   async mintGlitchOnChain(glitchType: string, owner: string): Promise<GlitchNFT> {
-    // This would interact with actual Anoma blockchain
-    // For now, we simulate the minting process
-    
-    console.log(`Minting Glitch NFT on Anoma chain...`)
-    console.log(`Type: ${glitchType}`)
-    console.log(`Owner: ${owner}`)
-    
-    // Simulate blockchain delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    const glitch = await this.mintGlitch(glitchType, owner)
-    
-    console.log(`✅ Glitch NFT minted successfully on Anoma chain!`)
-    console.log(`Token ID: ${glitch.id}`)
-    console.log(`Token URI: ${glitch.tokenUri}`)
-    
-    return glitch
+    try {
+      // Check if we're connected to Anoma network
+      if (!anomaClient.isNetworkConnected()) {
+        throw new Error('Not connected to Anoma network')
+      }
+
+      // Create the mint transaction payload
+      const mintPayload = {
+        type: 'anoma/MintGlitch',
+        value: {
+          glitch_type: glitchType,
+          owner: owner,
+          timestamp: Date.now().toString()
+        }
+      }
+
+      // Get the offline signer from Keplr
+      if (!window.keplr) {
+        throw new Error('Keplr wallet not found')
+      }
+
+      await window.keplr.enable('anoma-test.anoma')
+      const offlineSigner = window.keplr.getOfflineSigner('anoma-test.anoma')
+
+      // Sign the mint transaction
+      const signature = await offlineSigner.signAmino(
+        owner,
+        {
+          chain_id: 'anoma-test.anoma',
+          account_number: '0',
+          sequence: '0',
+          fee: {
+            amount: [],
+            gas: '150000'
+          },
+          msgs: [mintPayload],
+          memo: `Mint Glitch: ${glitchType}`
+        }
+      )
+
+      // Create signed intent object
+      const signedIntent = {
+        intent: mintPayload,
+        signature: signature.signature,
+        publicKey: signature.pub_key.value,
+        address: owner
+      }
+
+      // Broadcast to Anoma network
+      const txHash = await anomaClient.broadcastSignedIntent(signedIntent)
+      
+      console.log(`✅ Glitch NFT minted successfully on Anoma chain!`)
+      console.log(`Transaction Hash: ${txHash}`)
+      console.log(`Type: ${glitchType}`)
+      console.log(`Owner: ${owner}`)
+
+      // Create the local glitch object
+      const glitch = await this.mintGlitch(glitchType, owner)
+      
+      // Update the glitch with the transaction hash
+      glitch.tokenUri = `anoma://glitch-${glitchType}-${txHash}`
+      this.glitches.set(glitch.id, glitch)
+      this.saveGlitches()
+
+      return glitch
+    } catch (error) {
+      console.error('Failed to mint Glitch NFT on-chain:', error)
+      throw error
+    }
   }
 }
 
