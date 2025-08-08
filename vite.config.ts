@@ -1,22 +1,26 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import { resolve } from 'path'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': resolve(__dirname, 'src'),
     },
   },
   server: {
-    port: 5173,
-    open: true,
     host: true,
+    port: 5173,
+  },
+  preview: {
+    host: true,
+    port: 5173,
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: false,
     minify: 'terser',
     rollupOptions: {
       output: {
@@ -36,11 +40,10 @@ export default defineConfig({
       },
     },
   },
-  preview: {
-    port: 4173,
-    host: true,
-  },
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'ethers'],
   },
 }) 
