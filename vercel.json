@@ -10,22 +10,10 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -59,11 +47,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_ANOMA_RPC_ENDPOINT": "https://testnet.anoma.network",
-    "VITE_APP_NAME": "Anoma Intent Demo",
-    "VITE_APP_VERSION": "1.0.0",
-    "VITE_APP_ENVIRONMENT": "production"
-  }
+  ]
 } 
